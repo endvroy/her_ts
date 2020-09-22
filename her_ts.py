@@ -84,7 +84,7 @@ class BitFlipModule:
                                           estimation_step=3,
                                           action_range=(-1, 1))
         if use_her:
-            buffer = HERReplayBuffer(20000, 4, functools.partial(self.env.compute_reward, _info=None))
+            buffer = HERReplayBuffer(20000, 2, functools.partial(self.env.compute_reward, _info=None))
         else:
             buffer = ts.data.ReplayBuffer(20000)
 
@@ -116,7 +116,7 @@ class BitFlipModule:
 
 if __name__ == '__main__':
     use_her = True
-    bitflip_module = BitFlipModule(n_bits=5,
+    bitflip_module = BitFlipModule(n_bits=4,
                                    n_train_envs=8,
                                    n_test_envs=100,
                                    use_her=use_her)
