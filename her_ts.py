@@ -83,8 +83,21 @@ class BitFlipModule:
                                           gamma=1,
                                           estimation_step=3,
                                           action_range=(-1, 1))
+
+        def future_sampling(buffer, index):
+            rng = np.random.default_rng()
+            sampled_index = rng.integers(index, len(buffer))
+            return sampled_index
+
+        def done_fn(obs, action, obs_next, reward):
+            return reward == 1
+
         if use_her:
-            buffer = HERReplayBuffer(20000, 2, functools.partial(self.env.compute_reward, _info=None))
+            buffer = HERReplayBuffer(size=20000,
+                                     n_samples=2,
+                                     reward_fn=functools.partial(self.env.compute_reward, _info=None),
+                                     sample_fn=future_sampling,
+                                     done_fn=done_fn)
         else:
             buffer = ts.data.ReplayBuffer(20000)
 
@@ -116,7 +129,7 @@ class BitFlipModule:
 
 if __name__ == '__main__':
     use_her = True
-    bitflip_module = BitFlipModule(n_bits=4,
+    bitflip_module = BitFlipModule(n_bits=6,
                                    n_train_envs=8,
                                    n_test_envs=100,
                                    use_her=use_her)
