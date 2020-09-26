@@ -47,6 +47,7 @@ class BitFlipModule:
                  n_bits,
                  n_train_envs,
                  n_test_envs,
+                 buffer_size,
                  use_her):
         self.env = make_env(n_bits)
         train_envs = ts.env.DummyVectorEnv([lambda: make_env(n_bits) for _ in range(n_train_envs)])
@@ -54,11 +55,11 @@ class BitFlipModule:
         state_dim = self.env.observation_space['observation'].n + self.env.observation_space['desired_goal'].n
         action_dim = self.env.action_space.n
         actor = ActorNet(state_dim, [100, 200, 100], action_dim)
-        actor_optim = torch.optim.Adam(actor.parameters(), lr=1e-3)
+        actor_optim = torch.optim.Adam(actor.parameters(), lr=0.001)
 
         self.policy = ts.policy.DQNPolicy(model=actor,
                                           optim=actor_optim,
-                                          discount_factor=1,
+                                          discount_factor=0.95,
                                           estimation_step=1,
                                           target_update_freq=320)
 
@@ -71,13 +72,13 @@ class BitFlipModule:
             return reward == 1
 
         if use_her:
-            buffer = HERReplayBuffer(size=20000,
-                                     n_samples=2,
+            buffer = HERReplayBuffer(size=buffer_size,
+                                     n_samples=4,
                                      reward_fn=functools.partial(self.env.compute_reward, _info=None),
                                      sample_fn=future_sampling,
                                      done_fn=done_fn)
         else:
-            buffer = ts.data.ReplayBuffer(20000)
+            buffer = ts.data.ReplayBuffer(size=buffer_size)
 
         self.train_collector = ts.data.Collector(self.policy, train_envs, buffer)
         self.test_collector = ts.data.Collector(self.policy, test_envs)
@@ -88,11 +89,11 @@ class BitFlipModule:
             self.policy,
             self.train_collector,
             self.test_collector,
-            max_epoch=20,
-            step_per_epoch=1000,
-            collect_per_step=10,
+            max_epoch=200,
+            step_per_epoch=40,
+            collect_per_step=16,
             episode_per_test=100,
-            batch_size=64,
+            batch_size=128,
             train_fn=lambda e: self.policy.set_eps(0.1),
             test_fn=lambda e: self.policy.set_eps(0.05),
             # stop_fn=lambda x: x >= 0.7,
@@ -106,10 +107,11 @@ class BitFlipModule:
 
 
 if __name__ == '__main__':
-    use_her = False
-    bitflip_module = BitFlipModule(n_bits=7,
+    use_her = True
+    bitflip_module = BitFlipModule(n_bits=9,
                                    n_train_envs=8,
                                    n_test_envs=100,
+                                   buffer_size=int(1e6),
                                    use_her=use_her)
     print(f'use_her={use_her}')
     bitflip_module.train()
