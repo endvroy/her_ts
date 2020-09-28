@@ -38,7 +38,8 @@ class ActorNet(nn.Module):
         desired_goal = torch.from_numpy(obs.desired_goal).float()
         inp = torch.cat([observation, desired_goal], dim=1)
         raw_outp = self.model(inp)
-        outp = torch.log_softmax(raw_outp, dim=1)
+        # outp = torch.sigmoid(raw_outp)
+        outp = raw_outp
         return outp, state
 
 
@@ -108,7 +109,7 @@ class BitFlipModule:
 
 if __name__ == '__main__':
     use_her = True
-    bitflip_module = BitFlipModule(n_bits=9,
+    bitflip_module = BitFlipModule(n_bits=20,
                                    n_train_envs=8,
                                    n_test_envs=100,
                                    buffer_size=int(1e6),
